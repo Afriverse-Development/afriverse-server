@@ -33,6 +33,8 @@ mongoose
   .then(() => {
     console.log("🟢 MongoDB connected");
 
+
+    app.use("/user_waitlist", require("./routes/waitlist"));
     // Start server
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
