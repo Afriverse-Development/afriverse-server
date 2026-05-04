@@ -7,8 +7,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 
-dnsPromises.setServers(["1.1.1.1", "8.8.8.8"]);
-dns.setDefaultResultOrder("ipv4first");
+// dnsPromises.setServers(["1.1.1.1", "8.8.8.8"]);
+// dns.setDefaultResultOrder("ipv4first");
 
 
 
@@ -46,7 +46,6 @@ mongoose
     require("./bot/telegramBot.js"); // just import it, no need to assign
 
     //upload nft
-
 
 
     const multer = require('multer');

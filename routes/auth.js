@@ -113,43 +113,174 @@ router.post("/google", async (req, res) => {
     }
 });
 
+
 router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
 
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ error: true, message: "User not found" });
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ error: true, message: "Invalid credentials" });
-
-        // ✅ Generate JWT token
-        const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
-            expiresIn: "7d",
-        });
-        const { password: _, ...userWithoutPassword } = user.toObject(); // removes password
-
-        // 🔥 KEY LOGIC - check if NFT paid
-        if (!user.nft?.paid) {
-            return res.json({
-                message: "Login successful - payment required",
-                requirePayment: true,
-                userId: user._id,
-                token,
-                user: userWithoutPassword,
+        if (!user) {
+            return res.status(400).json({
+                error: true,
+                message: "User not found"
             });
         }
 
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({
+                error: true,
+                message: "Invalid credentials"
+            });
+        }
+
+        // ✅ Generate JWT
+        const token = jwt.sign(
+            { id: user._id, email: user.email },
+            JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        const { password: _, ...userWithoutPassword } = user.toObject();
+
+        // // ==========================
+        // // 🔥 STEP 1: TELEGRAM CHECK
+        // // ==========================
+        // if (!user.telegram?.connected) {
+        //     return res.json({
+        //         message: "Login successful - Telegram required",
+        //         requireTelegram: true,
+        //         telegramToken: user.telegramToken,
+        //         userId: user._id,
+        //         token,
+        //         user: userWithoutPassword,
+        //     });
+        // }
+
+        // // ==========================
+        // // 🔥 STEP 2: WALLET CHECK
+        // // ==========================
+        // if (!user.wallet?.connected) {
+        //     return res.json({
+        //         message: "Login successful - wallet required",
+        //         requireWallet: true,
+        //         userId: user._id,
+        //         token,
+        //         user: userWithoutPassword,
+        //     });
+        // }
+
+        // // ==========================
+        // // 🔥 STEP 3: NFT CHECK
+        // // ==========================
+        // if (!user.nft?.paid) {
+        //     return res.json({
+        //         message: "Login successful - payment required",
+        //         requirePayment: true,
+        //         userId: user._id,
+        //         token,
+        //         user: userWithoutPassword,
+        //     });
+        // }
+
+        // ==========================
+        // ✅ FULL ACCESS
+        // ==========================
         return res.json({
             message: "Login successful",
-            requirePayment: false,
             user: userWithoutPassword,
             token,
         });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+// router.post("/login", async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+
+//         const user = await User.findOne({ email });
+//         if (!user) {
+//             return res.status(400).json({
+//                 error: true,
+//                 message: "User not found"
+//             });
+//         }
+
+//         const isMatch = await bcrypt.compare(password, user.password);
+//         if (!isMatch) {
+//             return res.status(400).json({
+//                 error: true,
+//                 message: "Invalid credentials"
+//             });
+//         }
+
+//         // ✅ Generate JWT
+//         const token = jwt.sign(
+//             { id: user._id, email: user.email },
+//             JWT_SECRET,
+//             { expiresIn: "7d" }
+//         );
+
+//         const { password: _, ...userWithoutPassword } = user.toObject();
+
+//         // ==========================
+//         // 🔥 STEP 1: TELEGRAM CHECK
+//         // ==========================
+//         if (!user.telegram?.connected) {
+//             return res.json({
+//                 message: "Login successful - Telegram required",
+//                 requireTelegram: true,
+//                 telegramToken: user.telegramToken,
+//                 userId: user._id,
+//                 token,
+//                 user: userWithoutPassword,
+//             });
+//         }
+
+//         // ==========================
+//         // 🔥 STEP 2: WALLET CHECK
+//         // ==========================
+//         if (!user.wallet?.connected) {
+//             return res.json({
+//                 message: "Login successful - wallet required",
+//                 requireWallet: true,
+//                 userId: user._id,
+//                 token,
+//                 user: userWithoutPassword,
+//             });
+//         }
+
+//         // ==========================
+//         // 🔥 STEP 3: NFT CHECK
+//         // ==========================
+//         if (!user.nft?.paid) {
+//             return res.json({
+//                 message: "Login successful - payment required",
+//                 requirePayment: true,
+//                 userId: user._id,
+//                 token,
+//                 user: userWithoutPassword,
+//             });
+//         }
+
+//         // ==========================
+//         // ✅ FULL ACCESS
+//         // ==========================
+//         return res.json({
+//             message: "Login successful",
+//             requireTelegram: false,
+//             requireWallet: false,
+//             requirePayment: false,
+//             user: userWithoutPassword,
+//             token,
+//         });
+
+//     } catch (err) {
+//         res.status(500).json({ error: err.message });
+//     }
+// });
 
 // wallet connect
 router.post("/connect-wallet", async (req, res) => {
@@ -175,8 +306,6 @@ router.post("/connect-wallet", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-
 
 router.post("/verify-payment", uploadCloud.single("nftFile"), async (req, res) => {
     try {
@@ -231,4 +360,68 @@ router.post("/verify-payment", uploadCloud.single("nftFile"), async (req, res) =
         res.status(500).json({ error: err.message });
     }
 });
+
+router.post("/get-user", async (req, res) => {
+    const { userId } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    const { password, ...userWithoutPassword } = user.toObject();
+
+    res.json({ user: userWithoutPassword });
+});
+
+
+router.post("/telegram-login", async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing token",
+            });
+        }
+
+        // 1. Verify JWT from bot
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // 2. Find user
+        const user = await User.findById(decoded.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const { password, ...userWithoutPassword } = user.toObject();
+
+        // 3. Create NEW session token for app login
+        const appToken = jwt.sign(
+            { id: user._id, email: user.email },
+            JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        return res.json({
+            success: true,
+            token: appToken,
+            user: userWithoutPassword,
+        });
+
+    } catch (err) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid or expired token",
+        });
+    }
+});
+
+
 module.exports = router;

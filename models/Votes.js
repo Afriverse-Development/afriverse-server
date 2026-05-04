@@ -30,3 +30,7 @@ const voteSchema = new mongoose.Schema(
 
 // prevent duplicate vote per user per campaign
 voteSchema.index({ user: 1, campaign: 1 }, { unique: true });
+
+const Vote = mongoose.model("Vote", voteSchema);
+
+module.exports = Vote;

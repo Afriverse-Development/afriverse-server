@@ -33,7 +33,8 @@ const campaignSchema = new mongoose.Schema(
                                     name: String,
                                     image: String,
                                     votes: { type: Number, default: 0 },
-                                    },                       
+                                    proofLink:  String, // ✅ ADD PROOF LINK               
+                                    },        
                                 ],
         participantCount:        {type: Number, default: 0},
         pricePool:              { type: Number, default: 0 },
