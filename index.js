@@ -20,7 +20,13 @@ const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 
-
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+  })
+);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -31,9 +37,6 @@ if (!MONGO_URI) {
   console.error("❌ MONGO_URI not set");
   process.exit(1);
 }
-
-console.log("PORT ENV =", process.env.PORT);
-console.log("NODE_ENV =", process.env.NODE_ENV);
 
 // Middleware
 app.use(express.json());
