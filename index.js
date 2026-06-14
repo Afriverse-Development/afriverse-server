@@ -30,6 +30,8 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+
 app.use(cookieParser());
 if (!MONGO_URI) {
   console.error("❌ MONGO_URI not set");
@@ -45,7 +47,7 @@ app.use(
       const allowedOrigins = [
         "http://localhost:3000",
         "https://axiomarket-site.vercel.app",
-        "https://axiomarket.xyz",
+        "https://axiomaafriverseglobal.com",
       ];
 
       if (!origin) return callback(null, true);
