@@ -21,6 +21,8 @@ const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 
+app.set("trust proxy", 1);
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'blockhub_secret_key',
     resave: true,               // force save on every request
