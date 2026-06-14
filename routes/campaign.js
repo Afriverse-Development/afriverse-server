@@ -8,10 +8,11 @@ const router = express.Router()
 const User = require("../models/User");
 const Vote = require("../models/Votes");
 const authMiddleware = require("../functions/authMiddleWave");
+const auth = require("../middlewave/auth");
 
 
 
-router.post("/create_campaign", authMiddleware, async (req, res) => {
+router.post("/create_campaign", auth, async (req, res) => {
   try {
     const user = req.user;
 
@@ -77,7 +78,7 @@ router.post("/create_campaign", authMiddleware, async (req, res) => {
 
 
 // GET ALL CAMPAIGNS FOR LOGGED-IN USER
-router.get("/campaigns", authMiddleware, async (req, res) => {
+router.get("/campaigns", auth, async (req, res) => {
   try {
     const now = new Date();
 

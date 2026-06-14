@@ -5,10 +5,16 @@ const userSchema = new mongoose.Schema(
     email:             { type:String, required: true},
     password:          { type:String, required: false},
     firstName:         { type:String, required: true},
-    lastName:          { type:String, required: true},
+    lastName:          { type:String },
 
     googleId:          {type:String},
-    auhtProvider:      {type: String, enum: ["local", "google"], default: "local"},
+    twitterId:         {type:String},
+    authProvider:      {
+                         type: String,
+                         enum: ["local", "google", "twitter"],
+                         default: "local"
+                       },
+
 
     //subscrition
     plan:              { type: mongoose.Schema.Types.ObjectId, ref: "Plan" },

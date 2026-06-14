@@ -7,17 +7,30 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 
-// dnsPromises.setServers(["1.1.1.1", "8.8.8.8"]);
-// dns.setDefaultResultOrder("ipv4first");
+dnsPromises.setServers(["1.1.1.1", "8.8.8.8"]);
+dns.setDefaultResultOrder("ipv4first");
 
-
-
+const session = require("express-session");
+const cookieParser = require("cookie-parser");
+const passport = require("passport");
+require("./config/passport");
 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(cookieParser());
 if (!MONGO_URI) {
   console.error("❌ MONGO_URI not set");
   process.exit(1);
@@ -26,8 +39,26 @@ if (!MONGO_URI) {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "https://axiomarket-site.vercel.app",
+        "https://axiomarket.xyz",
+      ];
 
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 // MongoDB connection
 mongoose.set("strictQuery", true);
 

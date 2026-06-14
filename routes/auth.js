@@ -7,7 +7,12 @@ const { v4: uuidv4 } = require("uuid");
 const jwt = require("jsonwebtoken");
 const multer = require('multer');
 const streamifier = require('streamifier');
+const setAuthCookie = require("../utils/setAuthCookie.js");
 const cloudinary = require('cloudinary').v2;
+const axios = require("axios");
+const sanitizeUser = require("../utils/sanitizeUser.js");
+const { TwitterApi } = require("twitter-api-v2");
+const passport = require("passport");
 
 const uploadCloud = multer(); // for memory storage (buffer)
 
@@ -20,6 +25,54 @@ cloudinary.config({
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET
 
+const redirectUri = process.env.TWITTER_REDIRECT_URI;
+
+
+
+// ========================================
+// Twitter Login
+// ========================================
+router.get(
+  "/twitter",
+  passport.authenticate("twitter")
+);
+
+// ========================================
+// Twitter Callback
+// ========================================
+router.get(
+  "/twitter/callback",
+  passport.authenticate("twitter", {
+    failureRedirect: process.env.FRONTEND_URL,
+    session: false,
+  }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+
+      const token = jwt.sign(
+        {
+          id: user._id,
+          email: user.email,
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "30d",
+        }
+      );
+
+      setAuthCookie(res, token);
+
+      return res.redirect(process.env.FRONTEND_URL);
+    } catch (error) {
+      console.error("Twitter Login Error:", error);
+
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?error=twitter_auth_failed`
+      );
+    }
+  }
+);
 
 router.post("/register", async (req, res) => {
     try {
@@ -46,10 +99,11 @@ router.post("/register", async (req, res) => {
             expiresIn: "7d",
         });
 
-        res.json({
-            message: "User created",
-            user,
-            token,
+        setAuthCookie(res, token);
+
+        return res.json({
+            success: true,
+            user: sanitizeUser(user),
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -58,57 +112,98 @@ router.post("/register", async (req, res) => {
 
 router.post("/google", async (req, res) => {
     try {
-        const { email, firstName, lastName, googleId } = req.body;
+        const { token } = req.body;
 
-        if (!email || !googleId) {
+        if (!token) {
             return res.status(400).json({
-                error: true,
-                message: "Missing Google user data",
+                success: false,
+                message: "Google token required",
             });
         }
 
-        // 🔍 Check if user exists
+        // Verify token with Google
+        const googleResponse = await axios.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const profile = googleResponse.data;
+
+        const email = profile.email;
+        const googleId = profile.sub;
+        const firstName = profile.given_name || "";
+        const lastName = profile.family_name || "";
+
+        if (!email || !googleId) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Google account",
+            });
+        }
+
+        // ==================================
+        // Find Existing User
+        // ==================================
+
         let user = await User.findOne({ email });
 
-        // 👤 If not, create user
+        // ==================================
+        // Create New User
+        // ==================================
+
         if (!user) {
             user = await User.create({
                 email,
                 firstName,
                 lastName,
                 googleId,
-                password: null,
-                telegramToken: uuidv4(),
                 authProvider: "google",
+                telegramToken: uuidv4(),
+                isEmailVerified: true,
             });
         }
 
-        // 🔐 If user exists but no googleId, link account
+        // ==================================
+        // Link Google To Existing Account
+        // ==================================
+
         if (!user.googleId) {
             user.googleId = googleId;
-            user.authProvider = "google";
             await user.save();
         }
 
-        // 🔑 Generate JWT (same as your system)
-        const token = jwt.sign(
-            { id: user._id, email: user.email },
+        // ==================================
+        // Create Session
+        // ==================================
+
+        const jwtToken = jwt.sign(
+            {
+                id: user._id,
+                email: user.email,
+            },
             JWT_SECRET,
-            { expiresIn: "7d" }
+            {
+                expiresIn: "30d",
+            }
         );
 
-        const { password: _, ...userWithoutPassword } = user.toObject();
+        setAuthCookie(res, jwtToken);
 
         return res.json({
-            message: "Google auth successful",
-            token,
-            user: userWithoutPassword,
+            success: true,
+            user: sanitizeUser(user),
         });
 
     } catch (err) {
+        console.error("GOOGLE AUTH ERROR:", err);
+
         return res.status(500).json({
-            error: true,
-            message: err.message,
+            success: false,
+            message: "Google authentication failed",
         });
     }
 });
@@ -186,10 +281,11 @@ router.post("/login", async (req, res) => {
         // ==========================
         // ✅ FULL ACCESS
         // ==========================
+        setAuthCookie(res, token);
+
         return res.json({
-            message: "Login successful",
-            user: userWithoutPassword,
-            token,
+            success: true,
+            user: sanitizeUser(user),
         });
 
     } catch (err) {
