@@ -13,6 +13,7 @@ dns.setDefaultResultOrder("ipv4first");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const passport = require("passport");
+const { default: MongoStore } = require("connect-mongo");
 require("./config/passport");
 
 
@@ -20,13 +21,17 @@ const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-  })
-);
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'blockhub_secret_key',
+    resave: true,               // force save on every request
+    saveUninitialized: true,    // ensure new sessions are stored
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+    },
+}));
 
 app.use(passport.initialize());
 app.use(passport.session());

@@ -17,6 +17,7 @@
     "bcryptjs": "^3.0.3",
     "canvas": "^3.2.2",
     "cloudinary": "^2.9.0",
+    "connect-mongo": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "crypto": "^1.0.1",
