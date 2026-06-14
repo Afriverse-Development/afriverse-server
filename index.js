@@ -125,10 +125,17 @@ mongoose
 
 
     // Start server
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
+
+
+    app.get("/", (req, res) => {
+      res.status(200).send("Afriverse API OK");
+    });
   })
+
+
   .catch((err) => {
     console.error("❌ MongoDB connection failed:", err.message);
     process.exit(1);
