@@ -80,7 +80,6 @@ mongoose
     }
     //upload nft
 
-
     const multer = require('multer');
     const cloudinary = require('cloudinary').v2;
     const streamifier = require('streamifier');
