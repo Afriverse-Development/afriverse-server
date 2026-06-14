@@ -75,8 +75,9 @@ mongoose
     app.use("/user_plan", require("./routes/plan"));
 
     //bot
-    require("./bot/telegramBot.js"); // just import it, no need to assign
-
+    if (process.env.RUN_TELEGRAM_BOT === "true") {
+      require("./bot/telegramBot");
+    }
     //upload nft
 
 
