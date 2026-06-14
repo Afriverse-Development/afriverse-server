@@ -48,7 +48,17 @@ router.get(
   }),
   async (req, res) => {
     try {
+      console.log("TWITTER CALLBACK HIT");
+      console.log("USER:", req.user);
+
       const user = req.user;
+
+      if (!user) {
+        console.log("NO USER RETURNED");
+        return res.status(500).json({
+          error: "No user returned from passport"
+        });
+      }
 
       const token = jwt.sign(
         {
@@ -64,12 +74,15 @@ router.get(
       setAuthCookie(res, token);
 
       return res.redirect(process.env.FRONTEND_URL);
-    } catch (error) {
-      console.error("Twitter Login Error:", error);
 
-      return res.redirect(
-        `${process.env.FRONTEND_URL}/login?error=twitter_auth_failed`
-      );
+    } catch (error) {
+      console.error("TWITTER CALLBACK ERROR:");
+      console.error(error);
+
+      return res.status(500).json({
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 );
