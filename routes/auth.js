@@ -533,4 +533,16 @@ router.post("/telegram-login", async (req, res) => {
 });
 
 
+router.post("/logout", (req, res) => {
+    res.clearCookie("token");
+
+    res.json({
+        success: true,
+        message: "Logged out successfully"
+    });
+});
+
+
+
+
 module.exports = router;
