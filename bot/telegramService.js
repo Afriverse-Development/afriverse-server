@@ -3,62 +3,92 @@ const User = require("../models/User");
 const fs = require("fs");
 const path = require("path");
 
-const sendCampaignNotification = async (campaign) => {
-  try {
-    const users = await User.find({
-      "telegram.connected": true,
-      "telegram.chatId": { $exists: true }
-    });
+ // make sure bot is exported from your telegram bot file
 
-    const message = `
-🚀 New Campaign Launched!
+const sendCampaignNotification = async (campaign, creator) => {
+    try {
+        // only users with telegram connected
+        const users = await User.find({
+            "telegram.connected": true,
+            "telegram.chatId": { $exists: true },
+        });
+
+        const isLive =
+            new Date() >= new Date(campaign.startDate) &&
+            new Date() <= new Date(campaign.endDate);
+
+        const text = `
+🚀 ${isLive ? "LIVE CAMPAIGN" : "NEW CAMPAIGN"}
 
 📌 ${campaign.name}
+🏗️ Project: ${campaign.projectName}
 🧠 Type: ${campaign.type}
 
 📝 ${campaign.description}
 
-━━━━━━━━━━━━━━
-🔥 Join the campaign and earn rewards on Afriverse
-━━━━━━━━━━━━━━
+💰 Prize Pool: $${campaign.pricePool || 0}
+👥 Participants: ${campaign.participantCount || 0}
+📊 Votes: ${campaign.votesCount || 0}
+
+⏳ Duration: ${campaign.duration || 0} days
+📅 Starts: ${new Date(campaign.startDate).toDateString()}
+📅 Ends: ${new Date(campaign.endDate).toDateString()}
+
+🔥 Compete, vote, and climb the leaderboard to earn rewards in Afriverse 🌱
 `;
 
-    // ✅ LOCAL IMAGE (SAFE)
-    const photoBuffer = fs.readFileSync(
-      path.join(__dirname, "../assets/logo.jpg")
-    );
-
-    for (const user of users) {
-      try {
-        await bot.sendPhoto(user.telegram.chatId, photoBuffer, {
-          caption: message,
-          parse_mode: "Markdown",
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "🚀 View Campaign",
-                  url: `${process.env.HOSTNAME}/campaign/details?id=${campaign._id}`
-                }
-              ],
-              [
-                {
-                  text: "🐦 Check X Profile",
-                  url: "https://x.com/afriverse"
-                }
-              ]
-            ]
-          }
+        const sendPromises = users.map(async (user) => {
+            try {
+                return await bot.sendPhoto(
+                    user.telegram.chatId,
+                    campaign.image || "https://via.placeholder.com/600x400",
+                    {
+                        caption: text,
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "🚀 View Campaign",
+                                        url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
+                                    },
+                                ],
+                                [
+                                    {
+                                        text: "👥 Join Campaign",
+                                        url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
+                                    },
+                                    {
+                                        text: "🗳 Leaderboard",
+                                        url: `${process.env.HOSTNAME}/campaign/${campaign._id}/leaderboard`,
+                                    },
+                                ],
+                                [
+                                    {
+                                        text: "📊 About Project",
+                                        url: `${process.env.HOSTNAME}/project/${campaign.projectName}`,
+                                    },
+                                ],
+                                [
+                                    {
+                                        text: "🌍 Open Afriverse",
+                                        url: `${process.env.HOSTNAME}`,
+                                    },
+                                ],
+                            ],
+                        },
+                    }
+                );
+            } catch (err) {
+                console.log(`❌ Failed for user ${user._id}:`, err.message);
+            }
         });
-      } catch (err) {
-        console.log("Telegram send error:", err.message);
-      }
-    }
 
-  } catch (err) {
-    console.log("Notification error:", err.message);
-  }
+        await Promise.all(sendPromises);
+    } catch (err) {
+        console.error("❌ Campaign notification error:", err.message);
+    }
 };
+
 
 module.exports = {
   sendCampaignNotification
