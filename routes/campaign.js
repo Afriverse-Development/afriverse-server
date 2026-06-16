@@ -78,7 +78,7 @@ router.post("/create_campaign", auth, async (req, res) => {
       message: err.message,
     });
   }
-}); s
+});
 
 
 // GET ALL CAMPAIGNS FOR LOGGED-IN USER

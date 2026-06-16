@@ -24,15 +24,15 @@ const MONGO_URI = process.env.MONGO_URI;
 app.set("trust proxy", 1);
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'blockhub_secret_key',
-    resave: true,               // force save on every request
-    saveUninitialized: true,    // ensure new sessions are stored
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000,
-    },
+  secret: process.env.SESSION_SECRET || 'blockhub_secret_key',
+  resave: true,               // force save on every request
+  saveUninitialized: true,    // ensure new sessions are stored
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000,
+  },
 }));
 
 app.use(passport.initialize());
@@ -48,25 +48,29 @@ if (!MONGO_URI) {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://afriverseglobal.com",
-      ];
+app.use(cors({
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "https://afriverseglobal.com",
+    ];
 
-      if (!origin) return callback(null, true);
+    // allow server-to-server / postman / curl
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  })
-);
+    // ❌ DO NOT THROW ERROR — just reject silently
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+// app.options("*", cors());
 // MongoDB connection
 mongoose.set("strictQuery", true);
 
@@ -76,10 +80,18 @@ mongoose
     console.log("🟢 MongoDB connected");
 
     //routes
-    app.use("/user_waitlist", require("./routes/waitlist"));
-    app.use("/user_auth", require("./routes/auth"));
-    app.use("/user_campaign", require("./routes/campaign"));
-    app.use("/user_plan", require("./routes/plan"));
+
+    try {
+
+      app.use("/user_waitlist", require("./routes/waitlist"));
+      app.use("/user_auth", require("./routes/auth"));
+      app.use("/user_campaign", require("./routes/campaign"));
+      app.use("/user_plan", require("./routes/plan"));
+
+    }
+    catch (err) {
+      console.log("❌ campaign route error:", err);
+    }
 
     //bot
     if (process.env.RUN_TELEGRAM_BOT === "true") {

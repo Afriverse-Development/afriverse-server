@@ -13,6 +13,7 @@ const axios = require("axios");
 const sanitizeUser = require("../utils/sanitizeUser.js");
 const { TwitterApi } = require("twitter-api-v2");
 const passport = require("passport");
+const auth = require("../middlewave/auth.js");
 
 const uploadCloud = multer(); // for memory storage (buffer)
 
@@ -33,58 +34,58 @@ const redirectUri = process.env.TWITTER_REDIRECT_URI;
 // Twitter Login
 // ========================================
 router.get(
-  "/twitter",
-  passport.authenticate("twitter")
+    "/twitter",
+    passport.authenticate("twitter")
 );
 
 // ========================================
 // Twitter Callback
 // ========================================
 router.get(
-  "/twitter/callback",
-  passport.authenticate("twitter", {
-    failureRedirect: process.env.FRONTEND_URL,
-    session: false,
-  }),
-  async (req, res) => {
-    try {
-      console.log("TWITTER CALLBACK HIT");
-      console.log("USER:", req.user);
+    "/twitter/callback",
+    passport.authenticate("twitter", {
+        failureRedirect: process.env.FRONTEND_URL,
+        session: false,
+    }),
+    async (req, res) => {
+        try {
+            console.log("TWITTER CALLBACK HIT");
+            console.log("USER:", req.user);
 
-      const user = req.user;
+            const user = req.user;
 
-      if (!user) {
-        console.log("NO USER RETURNED");
-        return res.status(500).json({
-          error: "No user returned from passport"
-        });
-      }
+            if (!user) {
+                console.log("NO USER RETURNED");
+                return res.status(500).json({
+                    error: "No user returned from passport"
+                });
+            }
 
-      const token = jwt.sign(
-        {
-          id: user._id,
-          email: user.email,
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "30d",
+            const token = jwt.sign(
+                {
+                    id: user._id,
+                    email: user.email,
+                },
+                process.env.JWT_SECRET,
+                {
+                    expiresIn: "30d",
+                }
+            );
+
+            setAuthCookie(res, token);
+
+            return res.redirect(process.env.FRONTEND_URL);
+
+        } catch (error) {
+            console.error("TWITTER CALLBACK ERROR:");
+            console.error(error);
+
+            return res.status(500).json({
+                error: error.message,
+                stack: error.stack
+            });
         }
-      );
-
-      setAuthCookie(res, token);
-
-      return res.redirect(process.env.FRONTEND_URL);
-
-    } catch (error) {
-      console.error("TWITTER CALLBACK ERROR:");
-      console.error(error);
-
-      return res.status(500).json({
-        error: error.message,
-        stack: error.stack
-      });
     }
-  }
 );
 
 router.post("/register", async (req, res) => {
@@ -470,18 +471,26 @@ router.post("/verify-payment", uploadCloud.single("nftFile"), async (req, res) =
     }
 });
 
-router.post("/get-user", async (req, res) => {
-    const { userId } = req.body;
+router.get("/get-me", auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
 
-    const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                error: "User not found",
+            });
+        }
 
-    if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        const { password, __v, ...sanitizedUser } = user.toObject();
+
+        return res.status(200).json({
+            user: sanitizedUser,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: "Internal server error",
+        });
     }
-
-    const { password, ...userWithoutPassword } = user.toObject();
-
-    res.json({ user: userWithoutPassword });
 });
 
 
