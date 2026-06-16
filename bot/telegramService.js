@@ -3,21 +3,27 @@ const User = require("../models/User");
 const fs = require("fs");
 const path = require("path");
 
- // make sure bot is exported from your telegram bot file
+
+
+const photoBuffer = fs.readFileSync(
+  path.join(__dirname, "../assets/logo.jpg")
+);
+
+// make sure bot is exported from your telegram bot file
 
 const sendCampaignNotification = async (campaign, creator) => {
-    try {
-        // only users with telegram connected
-        const users = await User.find({
-            "telegram.connected": true,
-            "telegram.chatId": { $exists: true },
-        });
+  try {
+    // only users with telegram connected
+    const users = await User.find({
+      "telegram.connected": true,
+      "telegram.chatId": { $exists: true },
+    });
 
-        const isLive =
-            new Date() >= new Date(campaign.startDate) &&
-            new Date() <= new Date(campaign.endDate);
+    const isLive =
+      new Date() >= new Date(campaign.startDate) &&
+      new Date() <= new Date(campaign.endDate);
 
-        const text = `
+    const text = `
 🚀 ${isLive ? "LIVE CAMPAIGN" : "NEW CAMPAIGN"}
 
 📌 ${campaign.name}
@@ -37,56 +43,56 @@ const sendCampaignNotification = async (campaign, creator) => {
 🔥 Compete, vote, and climb the leaderboard to earn rewards in Afriverse 🌱
 `;
 
-        const sendPromises = users.map(async (user) => {
-            try {
-                return await bot.sendPhoto(
-                    user.telegram.chatId,
-                    campaign.image || "https://via.placeholder.com/600x400",
-                    {
-                        caption: text,
-                        reply_markup: {
-                            inline_keyboard: [
-                                [
-                                    {
-                                        text: "🚀 View Campaign",
-                                        url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
-                                    },
-                                ],
-                                [
-                                    {
-                                        text: "👥 Join Campaign",
-                                        url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
-                                    },
-                                    {
-                                        text: "🗳 Leaderboard",
-                                        url: `${process.env.HOSTNAME}/campaign/${campaign._id}/leaderboard`,
-                                    },
-                                ],
-                                [
-                                    {
-                                        text: "📊 About Project",
-                                        url: `${process.env.HOSTNAME}/project/${campaign.projectName}`,
-                                    },
-                                ],
-                                [
-                                    {
-                                        text: "🌍 Open Afriverse",
-                                        url: `${process.env.HOSTNAME}`,
-                                    },
-                                ],
-                            ],
-                        },
-                    }
-                );
-            } catch (err) {
-                console.log(`❌ Failed for user ${user._id}:`, err.message);
-            }
-        });
+    const sendPromises = users.map(async (user) => {
+      try {
+        return await bot.sendPhoto(
+          user.telegram.chatId,
+          photoBuffer,
+          {
+            caption: text,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "🚀 View Campaign",
+                    url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
+                  },
+                ],
+                [
+                  {
+                    text: "👥 Join Campaign",
+                    url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
+                  },
+                  {
+                    text: "🗳 Leaderboard",
+                    url: `${process.env.HOSTNAME}/campaign/${campaign._id}/leaderboard`,
+                  },
+                ],
+                [
+                  {
+                    text: "📊 About Project",
+                    url: `${process.env.HOSTNAME}/project/${campaign.projectName}`,
+                  },
+                ],
+                [
+                  {
+                    text: "🌍 Open Afriverse",
+                    url: `${process.env.HOSTNAME}`,
+                  },
+                ],
+              ],
+            },
+          }
+        );
+      } catch (err) {
+        console.log(`❌ Failed for user ${user._id}:`, err.message);
+      }
+    });
 
-        await Promise.all(sendPromises);
-    } catch (err) {
-        console.error("❌ Campaign notification error:", err.message);
-    }
+    await Promise.all(sendPromises);
+  } catch (err) {
+    console.error("❌ Campaign notification error:", err.message);
+  }
 };
 
 
