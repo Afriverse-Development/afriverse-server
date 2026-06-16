@@ -471,7 +471,7 @@ router.post("/verify-payment", uploadCloud.single("nftFile"), async (req, res) =
     }
 });
 
-router.get("/get-me", auth, async (req, res) => {
+router.get("/get_me", auth, async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
 
