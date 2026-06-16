@@ -15,7 +15,16 @@ const { sendCampaignNotification } = require("../bot/telegramService");
 
 router.post("/create_campaign", auth, async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.user.id; // 🔥 IMPORTANT FIX
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     const {
       type,
@@ -24,32 +33,26 @@ router.post("/create_campaign", auth, async (req, res) => {
       image,
       startDate,
       endDate,
-      pricePool, // ✅ ADD THIS
+      pricePool,
       name,
       projectName,
     } = req.body;
-
-    const finalName = name || `${user.firstName} Campaign`;
-    const finalProjectName =
-      projectName || `${user.firstName} ${user.lastName}`;
 
     const finalRequirements = Array.isArray(requirements)
       ? requirements
       : requirements?.split(",") || [];
 
     const campaign = new Campaign({
-      user: user._id,
+      user: user._id, // ✅ now always valid
       type,
       description,
       requirements: finalRequirements,
       image,
       startDate,
       endDate,
-
-      name: finalName,
-      projectName: finalProjectName,
-
-      pricePool: pricePool || 0, // ✅ FIX HERE
+      name: name || `${user.firstName} Campaign`,
+      projectName: projectName || `${user.firstName} ${user.lastName}`,
+      pricePool: pricePool || 0,
     });
 
     await campaign.save();
@@ -75,7 +78,7 @@ router.post("/create_campaign", auth, async (req, res) => {
       message: err.message,
     });
   }
-});
+}); s
 
 
 // GET ALL CAMPAIGNS FOR LOGGED-IN USER
@@ -142,14 +145,16 @@ router.get("/campaign/:id", authMiddleware, async (req, res) => {
       });
     }
 
-    // Optional safety: ensure user can access only their own campaigns
-    // (remove this if campaigns are public)
-    if (campaign.user._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not allowed to view this campaign",
-      });
-    }
+    // 🔥 FIXED AUTH USAGE (your system)
+    const userId = req.user.id;
+
+    // Optional safety: only allow owner to view
+    // if (campaign.user._id.toString() !== userId.toString()) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "You are not allowed to view this campaign",
+    //   });
+    // }
 
     return res.status(200).json({
       success: true,
@@ -164,10 +169,11 @@ router.get("/campaign/:id", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/join_campaign", authMiddleware, async (req, res) => {
+router.post("/join_campaign", auth, async (req, res) => {
   try {
     const { campaignId, proofLink } = req.body;
-    const user = req.user;
+
+    const userId = req.user.id; // 🔥 IMPORTANT (your auth style)
 
     if (!campaignId) {
       return res.status(400).json({
@@ -193,33 +199,41 @@ router.post("/join_campaign", authMiddleware, async (req, res) => {
       });
     }
 
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     // 🚫 prevent duplicate join
     const alreadyJoined = campaign.participants.find(
-      (p) => p.user.toString() === user._id.toString()
+      (p) => p.user.toString() === userId.toString()
     );
 
     if (alreadyJoined) {
-      const existingUser = await User.findById(user._id).select("-password");
+      const existingUser = await User.findById(userId);
 
-      // return res.status(400).json({
-      //   success: false,
-      //   message: "You already joined this campaign",
-      //   campaign,
-      //   user: existingUser, // ✅ still return user
-      // });
+      return res.status(200).json({
+        success: true,
+        message: "Already joined this campaign",
+        campaign,
+        user: sanitizeUser(existingUser), // 🔥 SAFE RESPONSE
+      });
     }
 
     // ✅ ADD TO CAMPAIGN
     campaign.participants.push({
       user: user._id,
       name: `${user.firstName} ${user.lastName}`,
-      image: user.nft.img || "",
+      image: user.nft?.img || "",
       votes: 0,
-      proofLink
+      proofLink,
     });
 
-    campaign.participantCount =
-      (campaign.participantCount || 0) + 1;
+    campaign.participantCount = (campaign.participantCount || 0) + 1;
 
     await campaign.save();
 
@@ -232,15 +246,13 @@ router.post("/join_campaign", authMiddleware, async (req, res) => {
     const updatedCampaign = await Campaign.findById(campaignId)
       .populate("participants.user");
 
-    const updatedUser = await User.findById(user._id)
-      .select("-password")
-      .populate("joinedCampaigns");
+    const updatedUser = await User.findById(userId);
 
     return res.status(200).json({
       success: true,
       message: "Joined campaign successfully",
       campaign: updatedCampaign,
-      user: updatedUser, // ✅ RETURN USER
+      user: sanitizeUser(updatedUser), // 🔥 CLEAN OUTPUT
     });
 
   } catch (err) {
@@ -252,11 +264,11 @@ router.post("/join_campaign", authMiddleware, async (req, res) => {
 });
 
 
-
-router.post("/vote", authMiddleware, async (req, res) => {
+router.post("/vote", auth, async (req, res) => {
   try {
     const { campaignId, targetUserId } = req.body;
-    const user = req.user;
+
+    const userId = req.user.id; // 🔥 IMPORTANT FIX (your auth style)
 
     if (!campaignId || !targetUserId) {
       return res.status(400).json({
@@ -265,17 +277,27 @@ router.post("/vote", authMiddleware, async (req, res) => {
       });
     }
 
-    // ❌ prevent self vote
-    // if (user._id.toString() === targetUserId) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "You cannot vote for yourself",
-    //   });
-    // }
+    const campaign = await Campaign.findById(campaignId);
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        message: "Campaign not found",
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     // ❌ prevent duplicate vote
     const alreadyVoted = await Vote.findOne({
-      user: user._id,
+      user: userId,
       campaign: campaignId,
     });
 
@@ -286,18 +308,24 @@ router.post("/vote", authMiddleware, async (req, res) => {
       });
     }
 
+    // ❌ prevent self vote (optional but recommended)
+    if (userId.toString() === targetUserId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot vote for yourself",
+      });
+    }
+
     // ✅ create vote
     await Vote.create({
-      user: user._id,
+      user: userId,
       campaign: campaignId,
       target: targetUserId,
     });
 
     // ✅ update campaign votes
-    const campaign = await Campaign.findById(campaignId);
-
     const participant = campaign.participants.find(
-      (p) => p.user.toString() === targetUserId
+      (p) => p.user.toString() === targetUserId.toString()
     );
 
     if (participant) {
@@ -308,19 +336,17 @@ router.post("/vote", authMiddleware, async (req, res) => {
 
     await campaign.save();
 
-    // 🔥 SAME PATTERN AS JOIN
+    // 🔄 fetch updated data
     const updatedCampaign = await Campaign.findById(campaignId)
       .populate("participants.user");
 
-    const updatedUser = await User.findById(user._id)
-      .select("-password")
-      .populate("joinedCampaigns");
+    const updatedUser = await User.findById(userId);
 
     return res.status(200).json({
       success: true,
       message: "Vote submitted successfully",
-      campaign: updatedCampaign, // ✅ THIS IS KEY
-      user: updatedUser,         // optional but consistent
+      campaign: updatedCampaign,
+      user: sanitizeUser(updatedUser), // 🔥 SAFE OUTPUT
     });
 
   } catch (err) {
