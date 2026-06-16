@@ -43,11 +43,11 @@ Let’s build the future of Web3 together 🌱
                 [
                     {
                         text: "𝕏 Follow us on X",
-                        url: "https://x.com/afriverse", // change to yours
+                        url: "https://x.com/globalAfriverse", // change to yours
                     },
                     {
                         text: "💬 Join Community",
-                        url: "https://t.me/afriverse", // change to yours
+                        url: "https://t.me/GlobalAfri_verse", // change to yours
                     },
                 ],
             ],
@@ -122,11 +122,11 @@ Let’s build the future of Web3 together 🌱
                     [
                         {
                             text: "𝕏 Follow Afriverse",
-                            url: "https://x.com/afriverse",
+                            url: "https://x.com/globalAfriverse",
                         },
                         {
                             text: "💬 Telegram Community",
-                            url: "https://t.me/afriverse",
+                            url: "https://t.me/GlobalAfri_verse",
                         },
                     ],
                     [
