@@ -473,7 +473,7 @@ router.post("/verify-payment", uploadCloud.single("nftFile"), async (req, res) =
 
 router.get("/get_me", auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
+        const user = await User.findById(req.user.id);
 
         if (!user) {
             return res.status(404).json({
