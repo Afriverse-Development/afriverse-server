@@ -1,4 +1,4 @@
-function sanitizeUser(user) {
+function sanitizeUser(user, includeTelegramToken = false) {
   if (!user) return null;
 
   const safe =
@@ -10,17 +10,21 @@ function sanitizeUser(user) {
   // 🔐 AUTH / SENSITIVE FIELDS
   // ----------------------------
   delete safe.password;
-  delete safe.telegramToken;
   delete safe.walletToken;
   delete safe.googleId;
   delete safe.twitterId;
+
+  // ONLY delete if NOT explicitly requested
+  if (!includeTelegramToken) {
+    delete safe.telegramToken;
+  }
 
   // ----------------------------
   // 🧠 MONGOOSE INTERNALS
   // ----------------------------
   delete safe.__v;
 
-  // timestamps (optional — keep if you want frontend sorting)
+  // timestamps (optional)
   delete safe.createdAt;
   delete safe.updatedAt;
 
@@ -33,29 +37,11 @@ function sanitizeUser(user) {
   }
 
   // ----------------------------
-  // 📊 USAGE / BILLING (optional privacy layer)
-  // ----------------------------
-  if (safe.usage) {
-    // keep usage if you want dashboard
-    // otherwise uncomment below to hide:
-    // delete safe.usage;
-  }
-
-  // ----------------------------
-  // 🪪 NFT INFO (keep public, remove sensitive IDs if needed)
+  // 🪪 NFT INFO
   // ----------------------------
   if (safe.nft) {
-    delete safe.nft.transactionHash; // optional privacy
-    delete safe.nft.img_Id; // internal storage ID
-  }
-
-  // ----------------------------
-  // 🔗 POPULATED REFS CLEANUP
-  // ----------------------------
-  // remove if populated accidentally with heavy data
-  if (safe.plan && typeof safe.plan === "object") {
-    // keep or strip depending on need
-    // delete safe.plan;
+    delete safe.nft.transactionHash;
+    delete safe.nft.img_Id;
   }
 
   // ----------------------------

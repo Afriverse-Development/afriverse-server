@@ -209,7 +209,7 @@ router.post("/google", async (req, res) => {
 
         return res.json({
             success: true,
-            user: sanitizeUser(user),
+            user: sanitizeUser(user,true),
         });
 
     } catch (err) {
@@ -299,7 +299,7 @@ router.post("/login", async (req, res) => {
 
         return res.json({
             success: true,
-            user: sanitizeUser(user),
+            user: sanitizeUser(user,true),
         });
 
     } catch (err) {
