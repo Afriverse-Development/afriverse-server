@@ -132,7 +132,7 @@ router.get("/campaigns", auth, async (req, res) => {
 
 // GET SINGLE CAMPAIGN (BY ID)
 
-router.get("/campaign/:id", authMiddleware, async (req, res) => {
+router.get("/campaign/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
 

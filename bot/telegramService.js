@@ -55,17 +55,17 @@ const sendCampaignNotification = async (campaign, creator) => {
                 [
                   {
                     text: "🚀 View Campaign",
-                    url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
+                    url: `${process.env.HOSTNAME}/campaign/details?id=${campaign._id}`
                   },
                 ],
                 [
                   {
                     text: "👥 Join Campaign",
-                    url: `${process.env.HOSTNAME}/campaign/${campaign._id}`,
+                    url: `${process.env.HOSTNAME}/campaign/details?id=${campaign._id}`
                   },
                   {
                     text: "🗳 Leaderboard",
-                    url: `${process.env.HOSTNAME}/campaign/${campaign._id}/leaderboard`,
+                    url: `${process.env.HOSTNAME}/campaign/details?id=${campaign._id}`
                   },
                 ],
                 [
