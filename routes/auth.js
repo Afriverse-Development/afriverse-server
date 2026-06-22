@@ -97,6 +97,18 @@ router.post("/register", async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ error: "User already exists" });
         }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: "Please enter a valid email address" });
+        }
+
+        if (!password || password.length < 8) {
+            return res.status(400).json({
+                error: "Password must be at least 8 characters long"
+            });
+        }
         const hashedPassword = await bcrypt.hash(password, 10);
         const telegramToken = uuidv4();
 
@@ -209,7 +221,7 @@ router.post("/google", async (req, res) => {
 
         return res.json({
             success: true,
-            user: sanitizeUser(user,true),
+            user: sanitizeUser(user, true),
         });
 
     } catch (err) {
@@ -299,7 +311,7 @@ router.post("/login", async (req, res) => {
 
         return res.json({
             success: true,
-            user: sanitizeUser(user,true),
+            user: sanitizeUser(user, true),
         });
 
     } catch (err) {
