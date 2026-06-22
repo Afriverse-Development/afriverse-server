@@ -129,7 +129,7 @@ router.post("/register", async (req, res) => {
 
         return res.json({
             success: true,
-            user: sanitizeUser(user),
+            user: sanitizeUser(user , true),
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
