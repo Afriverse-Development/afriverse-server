@@ -31,38 +31,48 @@ const sendCampaignNotification = async (campaign, creator) => {
       new Date() >= new Date(campaign.startDate) &&
       new Date() <= new Date(campaign.endDate);
 
+    const description =
+      campaign.description?.length > 250
+        ? campaign.description.slice(0, 250) + "..."
+        : campaign.description;
+
+    const requirements = (campaign.requirements || [])
+      .map((r, i) => {
+        const req =
+          r.length > 60
+            ? r.slice(0, 60) + "..."
+            : r;
+
+        return `${i + 1}. ${req}`;
+      })
+      .join("\n");
+
     const text = `
 🚀 ${isLive ? "LIVE CAMPAIGN" : "NEW CAMPAIGN"}
 
 📌 ${campaign.name}
 🏗️ Project: ${campaign.projectName}
-🧠 Type: ${campaign.type}
 
 📝 DESCRIPTION:
-${campaign.description}
+${description}
 
 📋 REQUIREMENTS:
-${(campaign.requirements || [])
-        .map((r, i) => `${i + 1}. ${r}`)
-        .join("\n")}
+${requirements}
 
-📊 CAMPAIGN INFO:
 💰 Prize Pool: $${campaign.pricePool || 0}
 👥 Participants: ${campaign.participants?.length || 0}
-🗳 Votes: ${campaign.votesCount || 0}
 
 📌 HOW IT WORKS:
-1. Join campaign
-2. Complete tasks
-3. Submit proof
-4. Earn votes from community
-5. Rank on leaderboard & win rewards
+• Join campaign
+• Complete tasks
+• Submit proof
+• Earn votes
+• Climb leaderboard
 
-⏳ Duration: ${campaign.duration || 0} days
-📅 Starts: ${new Date(campaign.startDate).toDateString()}
+⏳ ${campaign.duration || 0} Days
 📅 Ends: ${new Date(campaign.endDate).toDateString()}
 
-🔥 Compete, vote, and climb the leaderboard on Afriverse 🌱
+🔥 Earn rewards on Afriverse 🌱
 `;
 
     const sendPromises = users.map(async (user) => {
