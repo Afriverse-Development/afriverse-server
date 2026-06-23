@@ -9,6 +9,14 @@ const photoBuffer = fs.readFileSync(
   path.join(__dirname, "../assets/logo.jpg")
 );
 
+const instructions = [
+  "Complete all campaign requirements",
+  "Submit proof of participation",
+  "Engage with content (likes, retweets, comments)",
+  "Earn votes from community engagement",
+  "Top participants rank on leaderboard and win rewards"
+];
+
 // make sure bot is exported from your telegram bot file
 
 const sendCampaignNotification = async (campaign, creator) => {
@@ -30,17 +38,31 @@ const sendCampaignNotification = async (campaign, creator) => {
 🏗️ Project: ${campaign.projectName}
 🧠 Type: ${campaign.type}
 
-📝 ${campaign.description}
+📝 DESCRIPTION:
+${campaign.description}
 
+📋 REQUIREMENTS:
+${(campaign.requirements || [])
+        .map((r, i) => `${i + 1}. ${r}`)
+        .join("\n")}
+
+📊 CAMPAIGN INFO:
 💰 Prize Pool: $${campaign.pricePool || 0}
-👥 Participants: ${campaign.participantCount || 0}
-📊 Votes: ${campaign.votesCount || 0}
+👥 Participants: ${campaign.participants?.length || 0}
+🗳 Votes: ${campaign.votesCount || 0}
+
+📌 HOW IT WORKS:
+1. Join campaign
+2. Complete tasks
+3. Submit proof
+4. Earn votes from community
+5. Rank on leaderboard & win rewards
 
 ⏳ Duration: ${campaign.duration || 0} days
 📅 Starts: ${new Date(campaign.startDate).toDateString()}
 📅 Ends: ${new Date(campaign.endDate).toDateString()}
 
-🔥 Compete, vote, and climb the leaderboard to earn rewards in Afriverse 🌱
+🔥 Compete, vote, and climb the leaderboard on Afriverse 🌱
 `;
 
     const sendPromises = users.map(async (user) => {
